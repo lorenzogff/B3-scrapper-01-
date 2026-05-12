@@ -3,44 +3,52 @@
  * Fase 2 — Download de PDFs relevantes (manual_b3 prioritário).
  */
 
-const cheerio = require('cheerio');
 const fs = require('fs-extra');
 const path = require('path');
 const pLimit = require('p-limit');
 const cliProgress = require('cli-progress');
 const { logger } = require('./logger');
 const { sanitize, sha1File } = require('./utils');
-const { newContext, baixarPdf } = require('./http');
+const { baixarPdf } = require('./http');
 const { validarPdf } = require('./pdf');
-const { categorizar, deveBaixar } = require('./categorizer');
+const { deveBaixar } = require('./categorizer');
 
-async function listarPdfsDoProjeto(browser, projeto, cfg) {
-  if (!projeto.url_detalhe) return [];
-  const ctx = await newContext(browser, cfg.userAgent);
-  const page = await ctx.newPage();
-  let html;
-  try {
-    await page.goto(projeto.url_detalhe, {
-      waitUntil: 'networkidle',
-      timeout: cfg.navTimeout,
-    });
-    html = await page.content();
-  } catch (e) {
-    await ctx.close();
-    throw new Error(`detalhe inacessível: ${e.message}`);
-  }
-  await ctx.close();
-
-  const $ = cheerio.load(html);
+/**
+ * Documentos a baixar de um projeto.
+ *
+ * Cada projeto ja vem do discover com:
+ *   - url_manual: link para "02. Manual de Procedimentos da B3" (lum-download.asp).
+ *     Categoria manual_b3, prioridade 1.
+ *   - documentos[]: lista completa parseada do detalhe (Edital, anexos etc.),
+ *     quando disponivel.
+ */
+function listarPdfsDoProjeto(projeto) {
   const pdfs = [];
-  $('a[href]').each((_, a) => {
-    const href = $(a).attr('href') || '';
-    if (!/\.pdf(\?|$)/i.test(href)) return;
-    const url = new URL(href, projeto.url_detalhe).toString();
-    const nome = sanitize(path.basename(href.split('?')[0]));
-    const { categoria, prioridade } = categorizar(nome);
-    pdfs.push({ url, nome, categoria, prioridade });
-  });
+
+  if (projeto.url_manual) {
+    pdfs.push({
+      url: projeto.url_manual,
+      nome: `Manual_de_Procedimentos_B3__${projeto.id_leilao || projeto.id}.pdf`,
+      categoria: 'manual_b3',
+      prioridade: 1,
+    });
+  }
+
+  // Outros documentos da B3 detectados no detalhe (edital, anexo_contrato, errata)
+  if (Array.isArray(projeto.documentos)) {
+    for (const d of projeto.documentos) {
+      if (d.categoria === 'manual_b3') continue; // ja incluso acima
+      if (d.categoria === 'site_projeto') continue; // link externo, nao e PDF da B3
+      if (d.categoria === 'outros') continue;
+      pdfs.push({
+        url: d.url,
+        nome: `${d.categoria}__${sanitize(d.texto, 60)}.pdf`,
+        categoria: d.categoria,
+        prioridade: d.prioridade,
+      });
+    }
+  }
+
   pdfs.sort((a, b) => a.prioridade - b.prioridade);
   return pdfs;
 }
@@ -79,13 +87,12 @@ async function processarProjeto(browser, proj, manifest, dedup, cfg, lastHostAcc
     return { id: proj.id, skipped: true };
   }
 
-  let pdfs;
-  try {
-    pdfs = await listarPdfsDoProjeto(browser, proj, cfg);
-  } catch (e) {
-    entry.erros.push({ etapa: 'listar', msg: e.message, em: new Date().toISOString() });
-    bar.increment(1, { proj: proj.id.slice(0, 30) + ' [ERR]' });
-    return { id: proj.id, erro: e.message };
+  const pdfs = listarPdfsDoProjeto(proj);
+  if (!pdfs.length) {
+    entry.erros.push({ etapa: 'listar', msg: 'sem url_manual nem documentos no detalhe',
+                       em: new Date().toISOString() });
+    bar.increment(1, { proj: proj.id.slice(0, 30) + ' [sem-doc]' });
+    return { id: proj.id, sem_doc: true };
   }
 
   entry.pdfs_disponiveis = pdfs.map(({ nome, categoria, url }) => ({ nome, categoria, url }));

@@ -1,0 +1,214 @@
+<!DOCTYPE html><html class=" js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage no-websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths" lang="pt-br" style=""><head id="ctl00_Head1"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Calendar/Skins/SiteBmfBovespa/Calendar.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Calendar/Skins/SiteBmfBovespa/RadTimePicker.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Combobox/Skins/SiteBmfBovespa/Styles.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Estrutura.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/foundation.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Grid/Skins/SiteBmfBovespa/Styles.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Input/Skins/SiteBmfBovespa/styles.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/jquery.ui.datepicker.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Panelbar/Scripts/4_3_4/panelbar.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Panelbar/Skins/SiteBmfBovespa/styles.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Tabstrip/Scripts/3_6_4/tabstrip.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Tabstrip/Scripts/3_6_4/vtabstrip.css" type="text/css" rel="stylesheet"><link href="../aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Tabstrip/Skins/SiteBmfBovespa/styles.css" type="text/css" rel="stylesheet"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script async="" src="https://scripts.clarity.ms/0.8.64/clarity.js"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/js?id=G-N8Q475D7VP&amp;cx=c&amp;_slc=1"></script><script async="" src="https://www.clarity.ms/tag/ic5ptviwlu?ref=gtm2"></script><script type="text/javascript" async="" src="https://www.google-analytics.com/analytics.js"></script><script async="" src="//www.googletagmanager.com/gtm.js?id=GTM-KPF8G3"></script><script type="text/javascript" src="/ruxitagentjs_ICANVfgqru_10335260306043831.js" data-dtconfig="rid=RID_738360703|rpid=2061737187|domain=bmfbovespa.com.br|reportUrl=/rb_ea8d7b8f-040c-423b-b726-54310cab2c40|app=a8c099ff7888fac8|cuc=kju5m9kg|owasp=1|mel=100000|featureHash=ICANVfgqru|dpvc=1|lastModification=1778150967261|tp=500,50,0|rdnt=1|uxrgce=1|srbbv=2|agentUri=/ruxitagentjs_ICANVfgqru_10335260306043831.js"></script><script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/vendor/modernizr.js"></script>
+    <script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/vendor/jquery.js"></script>
+    <script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/foundation.min.js"></script><meta class="foundation-data-attribute-namespace"><meta class="foundation-mq-xxlarge"><meta class="foundation-mq-xlarge-only"><meta class="foundation-mq-xlarge"><meta class="foundation-mq-large-only"><meta class="foundation-mq-large"><meta class="foundation-mq-medium-only"><meta class="foundation-mq-medium"><meta class="foundation-mq-small-only"><meta class="foundation-mq-small"><style></style>
+    <script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/responsive.tables.min.js"></script>
+
+    <script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/jquery.ui.core.js"></script>
+    <script src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/js/jquery.ui.datepicker.js"></script>
+		
+    <script type="text/javascript" src="/shared/js/ferramentas.js"></script>
+    <script type="text/javascript" src="/shared/js/GlobalizacaoMsgValidacao.js"></script>
+    <script type="text/javascript" src="/shared/js/DicionarioFinanceiro.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function ($) {
+            //$('#mega-menu-1').dcMegaMenu({
+              //  rowItems: '4',
+              //  speed: 0,
+              //  fullWidth: false
+            //});
+            
+            $("a.mega-menu-navbar-servicos").addClass("active");
+        });
+    </script>
+    
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+    <script type="text/javascript">
+
+        window.addEventListener('click', iframe_resize);
+
+        function iframe_resize(altura) {
+
+            var height = 0
+            height = $("#divContainerIframe").height() + 24;
+
+            if (parent.postMessage) {
+				
+				if (navigator.userAgent.indexOf("Chrome") > - 1)
+					var parentURL = document.location.ancestorOrigins[0];
+				else
+					var parentURL = document.referrer;					
+													
+				if (parentURL.indexOf(window.location.hostname) > -1 || parentURL.indexOf("bmfbovespa.com.br") > -1)
+					parent.postMessage(height, "http://www.bmfbovespa.com.br");
+				else
+					parent.postMessage(height, "http://www.b3.com.br");
+				
+            }
+        }
+
+        function LimpaEstilo() {
+            $("input.radEnabledCss_SiteBmfBovespa").each(function () { $(this).removeAttr("style") });
+            $("input").mouseover(function () { $(this).removeAttr("style") });
+            $("input").mouseout(function () { $(this).removeAttr("style") });
+            $("input").focus(function () { $(this).removeAttr("style") });
+            $("input").blur(function () { $(this).removeAttr("style") });
+        }
+
+        function downloadFile(fileTitle, downloadKey, downloadArgs) {
+            var downloadUrl = "/download.ashx?key=" + downloadKey;
+
+            if (downloadArgs != null) {
+                downloadUrl += "&p=" + downloadArgs.join("&p=");
+            }
+
+            dcsMultiTrack("DCS.dcsuri", downloadUrl, "WT.ti", fileTitle);
+
+            window.top.location.href = downloadUrl;
+        }
+
+        function aplicarOrdenacao(idTabela) {
+            var tabela = document.getElementById(idTabela);
+            var style = document.createElement("style");
+
+            var initialBackgroundImageUrl = "/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Grid/Skins/SiteBmfBovespa/img/SortDesc.gif";
+            var sortUpBackgroundImageUrl = "/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Grid/Skins/SiteBmfBovespa/img/SortDesc.gif";
+            var sortDownBackgroundImageUrl = "/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/Grid/Skins/SiteBmfBovespa/img/SortAsc.gif";
+
+            var columnsInitialBackgroundImage = [];
+            var columnsSortUpBackgroundImage = [];
+            var columnsSortDownBackgroundImage = [];
+
+            var styleHtml = [];
+
+            $(tabela).tablesorter();
+
+            style.type = "text/css";
+
+            $(tabela).find("th").each(function (index, element) {
+                var columnClassName = idTabela + "_col" + index;
+                var leftPosition = element.firstChild.offsetLeft + element.firstChild.offsetWidth;
+                var middleSpot = element.firstChild.offsetTop + (element.firstChild.offsetHeight / 2);
+                var initialTop = middleSpot - 4;
+                var sortUpTop = initialTop;
+                var sortDownTop = middleSpot - 7;
+
+                columnsInitialBackgroundImage.push("#" + idTabela + " th." + columnClassName + " { background-position: " + leftPosition + "px " + initialTop + "px; }");
+                columnsSortUpBackgroundImage.push("#" + idTabela + " th.headerSortUp." + columnClassName + " { background-position: " + leftPosition + "px " + sortUpTop + "px; }");
+                columnsSortDownBackgroundImage.push("#" + idTabela + " th.headerSortDown." + columnClassName + " { background-position: " + leftPosition + "px " + sortDownTop + "px; }");
+
+                $(element).addClass(columnClassName);
+            });
+
+            styleHtml.push("#" + idTabela + " th                { background-image: url('" + initialBackgroundImageUrl + "'); background-repeat: no-repeat; }");
+            styleHtml.push("#" + idTabela + " th.headerSortUp   { background-image: url('" + sortUpBackgroundImageUrl + "'); }");
+            styleHtml.push("#" + idTabela + " th.headerSortDown { background-image: url('" + sortDownBackgroundImageUrl + "'); }");
+
+            styleHtml.push(columnsInitialBackgroundImage.join("\n"));
+            styleHtml.push(columnsSortUpBackgroundImage.join("\n"));
+            styleHtml.push(columnsSortDownBackgroundImage.join("\n"));
+
+            if (style.styleSheet) {
+                style.styleSheet.cssText = styleHtml.join("\n");
+            }
+            else {
+                style.appendChild(document.createTextNode(styleHtml.join("\n")));
+            }
+
+            document.getElementsByTagName("head")[0].appendChild(style);
+        }
+	</script>
+    
+<meta><meta><title>
+	 
+</title><meta class="foundation-mq-topbar"></head>
+<body id="ctl00_bovespa">
+<!-- Google Tag Manager -->
+<noscript><iframe src="//www.googletagmanager.com/ns.html?id=GTM-KPF8G3"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<script>    (function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({ 'gtm.start':
+new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+'//www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-KPF8G3');</script>
+<!-- End Google Tag Manager -->
+
+<form method="post" action="ResumoLeiloesEspeciaisDetalhe.aspx?IdLeilao=10914&amp;TituloLeilao=BNDES+-+001%2f2026+-+CONCESS%u00c3O+DO+SERVI%u00c7O+DE+ESGOTAMENTO+SANIT%u00c1RIO+NOS+MUNIC%u00cdPIOS+INTEGRANTES+DAS+MICRORREGI%u00d5ES+DE+%u00c1GUA+E+ESGOTO+ATENDIDOS+PELA+COMPANHIA+DE+%u00c1GUA+E+ESGOTOS+DA+PARA%u00cdBA+-+CAGEPA&amp;idioma=pt-br" id="aspnetForm">
+<div>
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE5NTIwOTIyMzIPZBYCZg9kFgQCAQ9kFgICEA8WAh4EVGV4dAUIc2Vydmljb3NkAgMPZBYCAgEPZBYEAgEPZBYEAgEPDxYCHwAFxQFCTkRFUyAtIDAwMS8yMDI2IC0gQ09OQ0VTU8ODTyBETyBTRVJWScOHTyBERSBFU0dPVEFNRU5UTyBTQU5JVMOBUklPIE5PUyBNVU5JQ8ONUElPUyBJTlRFR1JBTlRFUyBEQVMgTUlDUk9SUkVHScOVRVMgREUgw4FHVUEgRSBFU0dPVE8gQVRFTkRJRE9TIFBFTEEgQ09NUEFOSElBIERFIMOBR1VBIEUgRVNHT1RPUyBEQSBQQVJBw41CQSAtIENBR0VQQWRkAgMPFgIeC18hSXRlbUNvdW50AgIWBGYPZBYCAgEPFgIeBWNsYXNzBRxsaXN0LWF2YXRhci1yb3cgbGlzdGFJdGVtUERGFgICAQ8WCB4EaHJlZgVCaHR0cHM6Ly93d3cuY2FnZXBhLnBiLmdvdi5ici9saWNpdGFjYW8tY29uY29ycmVuY2lhLWludGVybmFjaW9uYWwvHgZ0YXJnZXQFBl9ibGFuax4FdGl0bGUFQmh0dHBzOi8vd3d3LmNhZ2VwYS5wYi5nb3YuYnIvbGljaXRhY2FvLWNvbmNvcnJlbmNpYS1pbnRlcm5hY2lvbmFsLx4JaW5uZXJodG1sBRMwMS4gU2l0ZSBkbyBQcm9qZXRvZAIBD2QWAgIBDxYCHwIFHGxpc3QtYXZhdGFyLXJvdyBsaXN0YUl0ZW1QREYWAgIBDxYIHwMFPURvd25sb2FkQXJxdWl2by5hc3B4P0NvZExlaWw9MTA5MTQmQ29kTGVpbFN1YnQ9MiZpZGlvbWE9cHQtYnIfBAUGX2JsYW5rHwUFJU1hbnVhbCBiMyAtIFBhcmHDrWJhIC0gU2FuZWFtZW50by5wZGYfBgUhMDIuIE1hbnVhbCBkZSBQcm9jZWRpbWVudG9zIGRhIEIzZAIDDw9kFgIeB29uY2xpY2sFHGhpc3RvcnkuYmFjaygpOyByZXR1cm4gZmFsc2VkZLM87IcjyemKO9Z5mTbZQuWBeeju">
+</div>
+
+
+<script src="/WebResource.axd?d=8XO1QZm4RZKm_MhlXR65ejPDafYHZuoF5OBY0Le3CUTWtPPcZfC5_dF5a9h8JGBcPcfaIiCcWg5jehi55Fz7fEwdcu_HOYdAc2KC5u_XdESzs2xOgr6FRcUHKn0Le5q5M98OTOhcxyqnP7Okqfj7PKm7PtauVTjYPyCtOagoTicTERKM0&amp;t=636213524813466454" type="text/javascript"></script>
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="492D2E4F">
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEWAgL87ImlCgK0s+TyDm9N8Jz4XThELq0VywTFiBfgzIE5">
+</div>
+<div id="divContainerIframe">
+<div class="row collapse">
+    <div class="large-12 columns">
+        
+  
+  <h2>Leilões Especiais e Licitações</h2> 
+  <h3><span id="ctl00_contentPlaceHolderConteudo_NomeLeilao" class="label">BNDES - 001/2026 - CONCESSÃO DO SERVIÇO DE ESGOTAMENTO SANITÁRIO NOS MUNICÍPIOS INTEGRANTES DAS MICRORREGIÕES DE ÁGUA E ESGOTO ATENDIDOS PELA COMPANHIA DE ÁGUA E ESGOTOS DA PARAÍBA - CAGEPA</span></h3>
+ 	
+	<div class="list-avatar">            
+    
+            <div id="ctl00_contentPlaceHolderConteudo_documentosDetalhe_ctl00_itemLi" class="list-avatar-row listaItemPDF">
+                <div class="primary-action">
+                    <img src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/img/ic_cloud_download_black_48dp.png" alt="">
+                </div>
+                <div class="content">
+                    <p class="primary-text"><a href="https://www.cagepa.pb.gov.br/licitacao-concorrencia-internacional/" id="ctl00_contentPlaceHolderConteudo_documentosDetalhe_ctl00_itemLink" target="_blank" title="https://www.cagepa.pb.gov.br/licitacao-concorrencia-internacional/" onclick="return VerificarLink(this);">01. Site do Projeto</a></p>
+                </div>
+            </div>
+            <div class="divider"></div>
+        
+            <div id="ctl00_contentPlaceHolderConteudo_documentosDetalhe_ctl01_itemLi" class="list-avatar-row listaItemPDF">
+                <div class="primary-action">
+                    <img src="/aspnet_client/system_web/2_0_50727/Themes/SiteBmfBovespa/img/ic_cloud_download_black_48dp.png" alt="">
+                </div>
+                <div class="content">
+                    <p class="primary-text"><a href="lum-download.asp?CodLeil=10914&amp;CodLeilSubt=2&amp;idioma=pt-br" id="ctl00_contentPlaceHolderConteudo_documentosDetalhe_ctl01_itemLink" target="_blank" title="Manual b3 - Paraíba - Saneamento.pdf" onclick="return VerificarLink(this);">02. Manual de Procedimentos da B3</a></p>
+                </div>
+            </div>
+            <div class="divider"></div>
+        
+    </div>
+
+	<script>
+		var tag_li = document.getElementById('divContainerIframe');
+		var tag_a = tag_li.getElementsByTagName('a');
+		for (i=0; i <tag_a.length; i++ )
+		{
+			var href = document.getElementsByTagName("a")[i].getAttribute("href");
+			if (href.toLowerCase().indexOf('downloadarquivo.aspx') > -1)
+			{
+				document.getElementsByTagName("a")[i].href = href.replace("DownloadArquivo.aspx","lum-download.asp");
+			}
+		}
+	</script>
+	
+
+    </div>
+</div>
+<div class="row">
+    <div class="large-12 columns"><div class="right"><input type="submit" name="ctl00$botaoNavegacaoVoltar" value="Voltar" onclick="history.back(); return false;" id="ctl00_botaoNavegacaoVoltar" class="button secondary"></div></div>
+</div>
+</div>
+</form>
+
+<script type="text/javascript">
+    $(document).foundation();
+    $("table").addClass("responsive");
+    LimpaEstilo();
+</script>
+
+
+<script type="text/javascript">iframe_resize();</script> 
+<script type="text/javascript" id="" charset="">(function(a,e,b,f,g,c,d){a[b]=a[b]||function(){(a[b].q=a[b].q||[]).push(arguments)};c=e.createElement(f);c.async=1;c.src="https://www.clarity.ms/tag/"+g+"?ref\x3dgtm2";d=e.getElementsByTagName(f)[0];d.parentNode.insertBefore(c,d)})(window,document,"clarity","script","ic5ptviwlu");</script></body></html>

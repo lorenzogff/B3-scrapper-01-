@@ -11,6 +11,7 @@ const ROOT = path.resolve(__dirname, '..');
 process.env.NODE_PATH = path.join(ROOT, 'node_modules');
 require('module').Module._initPaths();
 
+const fs = require('fs');
 const { parseBR, brl, dataOrdenacao, sanitize } = require(path.join(ROOT, 'src/lib/utils'));
 const {
   extrairRemuneracaoB3,
@@ -18,6 +19,8 @@ const {
   localizarAncoraNoSumario,
 } = require(path.join(ROOT, 'src/lib/regex'));
 const { categorizar } = require(path.join(ROOT, 'src/lib/categorizer'));
+const { parseListing, filtrarPorAno } = require(path.join(ROOT, 'src/lib/sources/bvmf-listing'));
+const { parseDetalhe } = require(path.join(ROOT, 'src/lib/sources/bvmf-detalhe'));
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -143,6 +146,49 @@ test('categorizar identifica edital', () => {
 
 test('categorizar identifica estudo (descartado)', () => {
   assert.strictEqual(categorizar('EVTEA_estudo_viabilidade.pdf').categoria, 'estudo_viabilidade');
+});
+
+// ─── sources: bvmf-listing (fixtures offline) ─────────────────────────────
+
+const FIXTURES = path.join(__dirname, 'fixtures');
+const listingHtml = (() => {
+  try { return fs.readFileSync(path.join(FIXTURES, 'bvmf-listing.html'), 'utf8'); }
+  catch { return null; }
+})();
+const detalheHtml = (() => {
+  try { return fs.readFileSync(path.join(FIXTURES, 'bvmf-detalhe.html'), 'utf8'); }
+  catch { return null; }
+})();
+
+test('bvmf-listing extrai >=200 projetos do fixture', () => {
+  if (!listingHtml) throw new Error('fixture tests/fixtures/bvmf-listing.html ausente');
+  const p = parseListing(listingHtml);
+  assert.ok(p.length >= 200, `esperado >=200, veio ${p.length}`);
+});
+
+test('bvmf-listing filtra 2024-2025 corretamente', () => {
+  if (!listingHtml) throw new Error('fixture ausente');
+  const p = parseListing(listingHtml);
+  const sub = filtrarPorAno(p, [2024, 2025]);
+  assert.ok(sub.length > 0, 'subset 2024-2025 vazio');
+  for (const x of sub) assert.ok([2024, 2025].includes(x.ano));
+});
+
+test('bvmf-listing acha BNDES - 001/2026 (IdLeilao=10914)', () => {
+  if (!listingHtml) throw new Error('fixture ausente');
+  const p = parseListing(listingHtml);
+  const cagepa = p.find((x) => x.id_leilao === 10914);
+  assert.ok(cagepa, 'IdLeilao=10914 nao encontrado');
+  assert.match(cagepa.url_detalhe, /IdLeilao=10914/);
+});
+
+test('bvmf-detalhe extrai url_manual e url_site_projeto', () => {
+  if (!detalheHtml) throw new Error('fixture ausente');
+  const d = parseDetalhe(detalheHtml,
+    'https://bvmf.bmfbovespa.com.br/consulta-leiloes/ResumoLeiloesEspeciaisDetalhe.aspx');
+  assert.strictEqual(d.id_leilao, 10914);
+  assert.match(d.url_manual, /lum-download\.asp\?CodLeil=10914&CodLeilSubt=2/);
+  assert.ok(d.url_site_projeto.startsWith('http'));
 });
 
 // ─── runner ───────────────────────────────────────────────────────────────

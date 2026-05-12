@@ -31,9 +31,10 @@ const DEFAULTS = {
 };
 
 const URLS = {
-  legacy: 'https://sistemasweb.b3.com.br/Leiloes/ConsultarLeilao/Index',
+  // Listing real da B3 (vive em iframe dentro de b3.com.br/.../em-andamento-e-anteriores/).
+  // Aponta para o servidor antigo bvmf, que ainda hospeda a grade ASP.NET RadGrid
+  // com todos os leiloes em andamento e anteriores.
   bvmf: 'https://bvmf.bmfbovespa.com.br/consulta-leiloes/Resumoleiloesespeciais.aspx?Idioma=pt-br',
-  detalhe: 'https://sistemasweb.b3.com.br/Leiloes/ConsultarLeilao/Detalhe',
 };
 
 function fromEnv(key, defaultVal, parse = (v) => v) {
