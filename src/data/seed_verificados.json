@@ -1,0 +1,42 @@
+{
+  "PARNA_CHAPADA_2022": {
+    "projeto": "Concessão PARNA Chapada dos Guimarães (ICMBio Concorrência 001/2022)",
+    "data": "2024",
+    "ano": 2024,
+    "valor_global": 925809.42,
+    "remuneracao_b3": 396000.00,
+    "fonte": "Manual B3 — gov.br/icmbio (data-base dez/2021)"
+  },
+  "PPP_GO_WIFI7_2025": {
+    "projeto": "PPP Conectividade Voz e Rede Wifi-7 — Estado de Goiás",
+    "data": "2025",
+    "ano": 2025,
+    "valor_global": null,
+    "remuneracao_b3": 543891.32,
+    "fonte": "Anexo III Manual B3 — goias.gov.br"
+  },
+  "PPP_MS_001_2025": {
+    "projeto": "PPP Escolas MS — Concorrência 001/2025",
+    "data": "2025",
+    "ano": 2025,
+    "valor_global": null,
+    "remuneracao_b3": 543891.32,
+    "fonte": "Anexo VI Manual B3 — epe.segov.ms.gov.br"
+  },
+  "PPP_TIMBO_SC_2025": {
+    "projeto": "PPP Municipal Timbó/SC",
+    "data": "2025",
+    "ano": 2025,
+    "valor_global": null,
+    "remuneracao_b3": 715646.48,
+    "fonte": "Anexo 5 Manual B3 — timbo.sc.gov.br"
+  },
+  "PPP_MG_ANEXO14_2024": {
+    "projeto": "PPP MG (Anexo 14 Manual B3, data-base fev/2022)",
+    "data": "2024",
+    "ano": 2024,
+    "valor_global": null,
+    "remuneracao_b3": 557779.45,
+    "fonte": "compras.mg.gov.br — Anexo 14 Manual B3"
+  }
+}
