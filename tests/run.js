@@ -19,8 +19,9 @@ const {
   localizarAncoraNoSumario,
 } = require(path.join(ROOT, 'src/lib/regex'));
 const { categorizar } = require(path.join(ROOT, 'src/lib/categorizer'));
-const { parseListing, filtrarPorAno } = require(path.join(ROOT, 'src/lib/sources/bvmf-listing'));
+const { parseListing, filtrarPorAno, filtrarAtivos } = require(path.join(ROOT, 'src/lib/sources/bvmf-listing'));
 const { parseDetalhe } = require(path.join(ROOT, 'src/lib/sources/bvmf-detalhe'));
+const { montarLinhas } = require(path.join(ROOT, 'src/lib/report'));
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -248,6 +249,85 @@ test('bvmf-detalhe extrai url_manual e url_site_projeto', () => {
   assert.strictEqual(d.id_leilao, 10914);
   assert.match(d.url_manual, /lum-download\.asp\?CodLeil=10914&CodLeilSubt=2/);
   assert.ok(d.url_site_projeto.startsWith('http'));
+});
+
+// ─── status filter: DESERTO/SUSPENSO/CANCELADO/REVOGADO ────────────────────
+
+test('bvmf-listing extrai status_b3 do prefixo do titulo', () => {
+  if (!listingHtml) throw new Error('fixture ausente');
+  const p = parseListing(listingHtml);
+  const statusValues = new Set(p.map((x) => x.status_b3));
+  assert.ok(statusValues.has('ATIVO'), 'esperado pelo menos um ATIVO');
+  assert.ok(statusValues.has('DESERTO') || statusValues.has('SUSPENSO') || statusValues.has('CANCELADO'),
+    'esperado pelo menos um nao-ativo no fixture');
+});
+
+test('bvmf-listing limpa prefixo de status do titulo', () => {
+  if (!listingHtml) throw new Error('fixture ausente');
+  const p = parseListing(listingHtml);
+  const cancelado = p.find((x) => x.status_b3 === 'CANCELADO');
+  if (cancelado) {
+    assert.ok(!/^CANCELADO\s*-/i.test(cancelado.titulo), 'titulo deveria nao comecar com CANCELADO');
+    assert.match(cancelado.titulo_original, /^CANCELADO\s*-/i);
+  }
+});
+
+test('filtrarAtivos remove desertos/suspensos/cancelados/revogados', () => {
+  if (!listingHtml) throw new Error('fixture ausente');
+  const todos = parseListing(listingHtml);
+  const ativos = filtrarAtivos(todos);
+  assert.ok(ativos.length < todos.length, 'esperava remover algo');
+  for (const a of ativos) assert.strictEqual(a.status_b3, 'ATIVO');
+  console.log(`    -> filtrou ${todos.length - ativos.length} inativos de ${todos.length} (sobraram ${ativos.length})`);
+});
+
+// ─── report: multi-lote ─────────────────────────────────────────────────────
+
+test('report mantem nome original quando lote unico', () => {
+  const resultados = [{
+    titulo: 'PARNA Chapada', data: '15/05/2024', ano: 2024,
+    valor_global: null, valores: [{ valor: 396000, lote: 'geral', pagina_pdf: 23 }],
+    status: 'auto',
+  }];
+  const linhas = montarLinhas(resultados);
+  assert.strictEqual(linhas.length, 1);
+  assert.strictEqual(linhas[0]['Nome do projeto'], 'PARNA Chapada');
+});
+
+test('report expande multi-lote em linhas com sufixo " - Lote N"', () => {
+  const resultados = [{
+    titulo: 'PPP Rodovia X', data: '10/06/2024', ano: 2024,
+    valor_global: null,
+    valores: [
+      { valor: 250000, lote: '1', pagina_pdf: 25 },
+      { valor: 380000, lote: '2', pagina_pdf: 26 },
+      { valor: 420000, lote: '3', pagina_pdf: 27 },
+    ],
+    status: 'auto',
+  }];
+  const linhas = montarLinhas(resultados);
+  assert.strictEqual(linhas.length, 3);
+  assert.strictEqual(linhas[0]['Nome do projeto'], 'PPP Rodovia X - Lote 1');
+  assert.strictEqual(linhas[1]['Nome do projeto'], 'PPP Rodovia X - Lote 2');
+  assert.strictEqual(linhas[2]['Nome do projeto'], 'PPP Rodovia X - Lote 3');
+  assert.strictEqual(linhas[0]['Valor de remuneração da B3'], 'R$ 250.000,00');
+  assert.strictEqual(linhas[2]['Lote'], '3');
+});
+
+test('report nao adiciona sufixo se lotes sao "geral"', () => {
+  const resultados = [{
+    titulo: 'Projeto Y', data: '01/01/2024', ano: 2024,
+    valor_global: null,
+    valores: [
+      { valor: 100000, lote: 'geral', pagina_pdf: 10 },
+      { valor: 200000, lote: 'geral', pagina_pdf: 11 },
+    ],
+    status: 'auto',
+  }];
+  const linhas = montarLinhas(resultados);
+  assert.strictEqual(linhas.length, 2);
+  assert.strictEqual(linhas[0]['Nome do projeto'], 'Projeto Y');
+  assert.strictEqual(linhas[1]['Nome do projeto'], 'Projeto Y');
 });
 
 // ─── runner ───────────────────────────────────────────────────────────────

@@ -9,6 +9,11 @@ const path = require('path');
 const { logger } = require('./logger');
 const { brl, dataOrdenacao } = require('./utils');
 
+/**
+ * Quando o regex achou mais de um lote no mesmo projeto, expande para
+ * uma linha por lote e renomeia "Nome do projeto" para "<titulo> - Lote N".
+ * Projetos com lote unico (ou 'geral') mantem o nome original.
+ */
 function montarLinhas(resultados) {
   const linhas = [];
   for (const r of resultados) {
@@ -28,11 +33,17 @@ function montarLinhas(resultados) {
     if (!r.valores || r.valores.length === 0) {
       linhas.push(base);
     } else {
+      const ehMultiLote = r.valores.length > 1;
       for (const v of r.valores) {
+        const loteStr = v.lote || 'geral';
+        const nome = ehMultiLote && loteStr !== 'geral'
+          ? `${r.titulo} - Lote ${loteStr}`
+          : r.titulo;
         linhas.push({
           ...base,
+          'Nome do projeto': nome,
           'Valor de remuneração da B3': brl(v.valor),
-          'Lote': v.lote || 'geral',
+          'Lote': loteStr,
           'Página PDF': v.pagina_pdf || r.pagina_alvo || '',
         });
       }

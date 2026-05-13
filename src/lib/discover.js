@@ -23,7 +23,7 @@ const cliProgress = require('cli-progress');
 const { logger } = require('./logger');
 const { newContext } = require('./http');
 const { sleep } = require('./utils');
-const { parseListing, filtrarPorAno } = require('./sources/bvmf-listing');
+const { parseListing, filtrarPorAno, filtrarAtivos } = require('./sources/bvmf-listing');
 const { parseDetalhe } = require('./sources/bvmf-detalhe');
 
 async function buscarListing(browser, cfg) {
@@ -99,13 +99,20 @@ async function descobrir(browser, cfg) {
   }
 
   const todosProjetos = parseListing(listingHtml);
-  logger.ok(`  listing: ${todosProjetos.length} projetos (todos os anos)`);
+  logger.ok(`  listing: ${todosProjetos.length} projetos (todos os anos, todos os status)`);
 
   if (todosProjetos.length < 20) {
     throw new Error(`apenas ${todosProjetos.length} projetos no listing — estrutura provavelmente mudou`);
   }
 
-  const projetos = filtrarPorAno(todosProjetos, cfg.anos);
+  // Exclui DESERTO/SUSPENSO/CANCELADO/REVOGADO/etc. salvo opt-in explicito
+  const projetosAtivos = cfg.incluirInativos ? todosProjetos : filtrarAtivos(todosProjetos);
+  const excluidos = todosProjetos.length - projetosAtivos.length;
+  if (excluidos > 0) {
+    logger.ok(`  filtro status: ${projetosAtivos.length} ativos (${excluidos} desertos/suspensos/cancelados excluidos)`);
+  }
+
+  const projetos = filtrarPorAno(projetosAtivos, cfg.anos);
   logger.ok(`  filtro anos: ${projetos.length} projetos`);
 
   // Etapa B: visitar paginas de detalhe (paralelo, com rate-limit)

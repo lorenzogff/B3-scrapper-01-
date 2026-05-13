@@ -31,6 +31,10 @@ const RE_DETALHE = /IdLeilao=(\d+)/i;
 const RE_DATA = /\b(\d{2})\/(\d{2})\/(\d{4})\b/;
 // Numero do edital: "001/2026", "14-2026", "100/24", etc.
 const RE_NUM_EDITAL = /\b(\d{1,4})\s*[\/.-]\s*(\d{2,4})\b/;
+// Prefixo de status no titulo do projeto (visto em 2024-2026):
+// "DESERTO - BNDES - 01/2025 - ...", "SUSPENSO - ...", "CANCELADO - ...", "REVOGADO - ...".
+// Tambem aceita "ADIADO" e "ANULADO" por seguranca.
+const RE_STATUS_PREFIX = /^(DESERTO|SUSPENSO|CANCELADO|REVOGADO|ADIADO|ANULADO|FRACASSADO)\s*[-–—]\s*/i;
 
 /**
  * Extrai um inteiro de 4 digitos representando o ano a partir de:
@@ -71,12 +75,18 @@ function parseRow($, row, fonte) {
   if (!link.length) return null;
 
   const href = link.attr('href') || '';
-  const titulo = link.text().trim().replace(/\s+/g, ' ');
-  if (!titulo) return null;
+  const tituloRaw = link.text().trim().replace(/\s+/g, ' ');
+  if (!tituloRaw) return null;
 
   const mid = href.match(RE_DETALHE);
   if (!mid) return null;
   const idLeilao = parseInt(mid[1], 10);
+
+  // Detecta e remove prefixo de status (DESERTO, SUSPENSO, CANCELADO, ...).
+  // O titulo limpo vai pra coluna 'Nome do projeto'; o status fica em status_b3.
+  const ms = tituloRaw.match(RE_STATUS_PREFIX);
+  const statusB3 = ms ? ms[1].toUpperCase() : 'ATIVO';
+  const titulo = ms ? tituloRaw.slice(ms[0].length).trim() : tituloRaw;
 
   const ano = extrairAno(data, titulo);
   const numEdital = extrairNumEdital(titulo);
@@ -87,6 +97,8 @@ function parseRow($, row, fonte) {
     id_leilao: idLeilao,
     num_edital: numEdital,
     titulo,
+    titulo_original: tituloRaw,
+    status_b3: statusB3,
     data,
     ano,
     fonte,
@@ -133,11 +145,22 @@ function filtrarPorAno(projetos, anos) {
   return projetos.filter((p) => set.has(p.ano));
 }
 
+/**
+ * Filtra apenas leiloes com status ATIVO (remove DESERTO, SUSPENSO, CANCELADO,
+ * REVOGADO, ADIADO, ANULADO, FRACASSADO).
+ * @param {Array<Object>} projetos
+ */
+function filtrarAtivos(projetos) {
+  return projetos.filter((p) => p.status_b3 === 'ATIVO');
+}
+
 module.exports = {
   parseListing,
   filtrarPorAno,
+  filtrarAtivos,
   SELECTORS,
   RE_DETALHE,
   RE_DATA,
   RE_NUM_EDITAL,
+  RE_STATUS_PREFIX,
 };

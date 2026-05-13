@@ -60,6 +60,7 @@ function loadConfig(argv = {}) {
     retomar: argv.retomar || false,
     forceRedownload: argv.forceRedownload || false,
     baixarTudo: argv.baixarTudo || false,
+    incluirInativos: argv.incluirInativos || false,
     categorias: argv.categorias || ['manual_b3', 'edital', 'anexo_contrato', 'errata'],
   };
 
