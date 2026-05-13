@@ -52,17 +52,27 @@ $municipios = @{
   )
 }
 
+if ([string]::IsNullOrWhiteSpace($Uf)) {
+  Write-Host "Uso: .\scripts\filter-uf.ps1 <UF> [-ExportCsv]" -ForegroundColor Red
+  Write-Host "Exemplo: .\scripts\filter-uf.ps1 RJ" -ForegroundColor Red
+  exit 1
+}
 $ufUpper = $Uf.ToUpper()
 if (-not $municipios.ContainsKey($ufUpper)) {
   Write-Host ("UF '{0}' nao mapeada. Disponiveis: {1}" -f $ufUpper, ($municipios.Keys -join ', ')) -ForegroundColor Red
   exit 1
 }
 
-# Constroi regex final
+# Constroi regex final defensivamente — nunca gera alternativa vazia,
+# que matchaaria qualquer string (bug ja visto quando $ufUpper veio vazio).
 $lista = $municipios[$ufUpper]
-$padraoUf = "\b$ufUpper\b|/$ufUpper\b"
-$padraoMun = ($lista | ForEach-Object { "\b$_\b" }) -join '|'
-$regex = "(?i)($padraoUf|$padraoMun)"
+$alternativas = @("\b$ufUpper\b", "/$ufUpper\b")
+foreach ($m in $lista) {
+  if (-not [string]::IsNullOrWhiteSpace($m)) {
+    $alternativas += "\b$m\b"
+  }
+}
+$regex = "(?i)(" + ($alternativas -join '|') + ")"
 
 # Caminho do projetos.json (compativel com PS 5.1)
 $projectsPath = Join-Path -Path $PSScriptRoot -ChildPath '..\cache\projetos.json'
