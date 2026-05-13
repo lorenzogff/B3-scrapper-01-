@@ -25,11 +25,17 @@ async function extrairTextoPorPagina(buffer) {
         }
         lastY = item.transform[5];
       }
-      return text;
+      // Marcador de fim de pagina — pdf-parse concatena os retornos
+      // de pagerender sem separador, entao precisamos emitir um \f
+      // para que o split(/\f/) abaixo recupere a estrutura de paginas.
+      return text + '\f';
     }),
   };
   const data = await pdfParse(buffer, opts);
-  return data.text.split(/\f/);
+  const paginas = data.text.split(/\f/);
+  // Remove ultima entrada vazia (decorrente do \f final)
+  if (paginas.length && paginas[paginas.length - 1].trim() === '') paginas.pop();
+  return paginas;
 }
 
 /**
