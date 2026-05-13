@@ -5,6 +5,7 @@
  */
 
 const fs = require('fs-extra');
+const fsp = require('fs').promises;
 const pdfParse = require('pdf-parse');
 const { localizarAncoraNoSumario } = require('./regex');
 
@@ -72,7 +73,7 @@ async function validarPdf(filepath, minSize = 5000) {
   if (stat.size < minSize) {
     return { ok: false, motivo: `tamanho ${stat.size}B < mínimo ${minSize}B` };
   }
-  const fd = await fs.open(filepath, 'r');
+  const fd = await fsp.open(filepath, 'r');
   try {
     const buf = Buffer.alloc(5);
     await fd.read(buf, 0, 5, 0);
