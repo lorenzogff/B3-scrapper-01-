@@ -330,6 +330,53 @@ test('report nao adiciona sufixo se lotes sao "geral"', () => {
   assert.strictEqual(linhas[1]['Nome do projeto'], 'Projeto Y');
 });
 
+// ─── novas variantes de remuneração B3 (diag-financeiro 2018-2026) ──────────
+
+test('variante "remuneracao da B3 devida pela X é R$" (BVMF_10113, 10565, 10568, 10586)', () => {
+  const s = 'REMUNERAÇÃO DA B3 Após a homologação, a B3 cobra o montante referente à sua remuneração. A remuneração da B3 devida pela PROPONENTE VENCEDORA é R$ 566.134,39 (quinhentos e sessenta e seis mil, cento e trinta e quatro Reais e trinta e nova centavos). Após';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 566134.39);
+});
+
+test('variante "remuneracao da B3 ... de cada BLOCO é de R$" (BVMF_10571 multi-bloco)', () => {
+  const s = 'REMUNERAÇÃO DA B3 Conforme item 16.5, inciso (ix), do EDITAL, após a homologação, a B3 cobra o montante referente à sua remuneração. A remuneração da B3 devida pela LICITANTE VENCEDORA de cada BLOCO é de R$ 137.479,41 (cento e trinta e sete mil)';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 137479.41);
+});
+
+test('variante "consistira nos seguintes valores R$" (BVMF_10564)', () => {
+  const s = '19 REMUNERAÇÃO DA B3 A remuneração da B3 consistirá nos seguintes valores: R$ 1.082.783,45 (um milhão, oitenta e dois mil, setecentos e oitenta e três reais e quarenta e cinco centavos)';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 1082783.45);
+});
+
+test('nao captura "montante de indenizacao" de garantia (BVMF_10523, 10559, 10574)', () => {
+  // Falso-positivo a evitar: garantia de seguro tem "montante de indenizacao" sem B3
+  const s = 'A Apólice de Seguro-garantia deverá prever o montante de indenização de R$ 14.238.980,00 (catorze milhões, duzentos e trinta e oito mil, novecentos e oitenta reais).';
+  const r = extrairRemuneracaoB3(s);
+  assert.strictEqual(r.length, 0, 'nao deveria capturar montante de garantia');
+});
+
+test('nao captura "Carta de Fianca no montante de R$" (BVMF_10523, 10574 garantia)', () => {
+  const s = 'autorizado pelo Banco Central do Brasil a expedir Cartas de Fiança, e que o valor da presente Carta de Fiança, no montante de R$ 16.991.996,20 (dezesseis milhões), encontra-se dentro';
+  const r = extrairRemuneracaoB3(s);
+  assert.strictEqual(r.length, 0, 'nao deveria capturar montante de garantia');
+});
+
+test('localizarAncoraNoCorpo casa "REMUNERAÇÃO DA B3" sem CAPÍTULO N (BVMF_10113, 10564)', () => {
+  // BVMF_10113: TOC tem "REMUNERAÇÃO DA B3 20" sem capítulo; conteúdo na p20.
+  const paginas = ['capa', 'sumario', 'intro', 'p4', 'p5',
+    'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14',
+    'p15', 'p16', 'p17', 'p18',
+    'REMUNERAÇÃO DA B3 Após a homologação, a B3 cobra o montante referente à sua remuneração. A remuneração da B3 devida pela PROPONENTE VENCEDORA é R$ 566.134,39'];
+  const r = localizarAncoraNoCorpo(paginas);
+  assert.ok(r, 'esperava ancora no corpo');
+  assert.strictEqual(r.pagina, 19);
+});
+
 // ─── runner ───────────────────────────────────────────────────────────────
 
 let pass = 0, fail = 0;

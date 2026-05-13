@@ -14,13 +14,19 @@
 // Âncoras de sumário (TOC) — em ordem de prioridade
 // ───────────────────────────────────────────────────────────────────────────
 
+// Helper: conector entre "remuneração" e "B3" — aceita "da/de/do/à/devida"
+// com variantes (ex.: "remuneração da B3", "remuneração à B3", "remuneração
+// devida à B3", "remuneração devida pela X de cada BLOCO de R$").
+// Os manuais 2018-2020 esmagadoramente usam "da B3" (ausente no regex antigo).
+const CONECTOR_B3 = '(?:d[aeo]\\s+|à\\s+|devida\\s+(?:à\\s+|d[aeo]\\s+)?|para\\s+(?:à\\s+)?)?';
+
 // \s* (não \s+) para tolerar PDFs onde pdf-parse devolve texto sem espaços
 // entre palavras (visto em manuais com fonte custom, ex.: Sanepar, Betim PPP).
 const ANCORAS_TOC = [
   [/obriga[çc][õo]es\s*pr[ée]vi(?:as|a)\s*(?:à\s*)?assinatura/i, 'obrigacoes_previas'],
   [/cap[íi]tulo\s*(?:\d{1,2}|[IVX]+)\b[^.\n]{0,80}remunera[çc][ãa]o[\s]*(?:da|d')?[\s]*b3/i, 'capitulo_remuneracao'],
   [/homologa[çc][ãa]o\s*da\s*licita[çc][ãa]o\s*e\s*remunera[çc][ãa]o/i, 'homologacao'],
-  [/remunera[çc][ãa]o\s*(?:devida\s*)?(?:à\s*)?b3/i, 'remuneracao_b3'],
+  [new RegExp('remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3', 'i'), 'remuneracao_b3'],
   [/reembolso\s*(?:à\s*)?b3/i, 'reembolso_b3'],
 ];
 
@@ -32,12 +38,18 @@ const ANCORAS_TOC = [
 // \s* permite texto comprimido ("naimportânciadeR$684.035,88").
 const RE_VALOR_CANONICO = /import[âa]ncia\s*de\s*R\$\s*([\d.,]+)(?:\s*\(([^)]{5,250})\))?/gi;
 
-// Variantes (usadas se canônico não casar):
-const RE_VALOR_REMUN = /remunera[çc](?:ão|ao)\s*(?:devida\s*)?(?:à\s*)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+// Variante "remuneração [da|à|devida] B3 ... R$" — comum em manuais 2018-2020.
+// Janela de 300 chars (era 200) cobre "remuneração da B3 devida pela X é R$".
+const RE_VALOR_REMUN = new RegExp(
+  'remunera[çc](?:ão|ao)\\s+' + CONECTOR_B3 + 'B3[^.]{0,300}?R\\$\\s*([\\d.,]+)',
+  'gi'
+);
 const RE_VALOR_REEMBOLSO = /reembolso\s*(?:à\s*)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
 const RE_VALOR_TAXA_ADESAO = /taxa\s*de\s*ades[ãa]o[^.]{0,200}?R\$\s*([\d.,]+)/gi;
-// Manuais ANTT/recentes usam "no montante de" / "montante total referente" em vez de "importância de"
-const RE_VALOR_MONTANTE = /montante\s*(?:total\s*)?(?:referente\s*(?:à\s*sua\s*)?(?:remunera[çc][ãa]o)?\s*)?\s*(?:de|à)?\s*[^.]{0,150}?R\$\s*([\d.,]+)/gi;
+// Padrão "montante (total) referente (à sua) remuneração ... R$" — específico
+// para evitar falso-positivo em "montante de indenização" (Apólice/Carta de
+// Fiança que aparece em editais ANEEL).
+const RE_VALOR_MONTANTE = /montante\s+(?:total\s+)?referente\s+(?:à\s+sua\s+)?(?:remunera[çc][ãa]o)?[^.]{0,200}?R\$\s*([\d.,]+)/gi;
 
 // Identificação de lote no contexto antes do valor
 const RE_LOTE = /\blote\s+(\d+|[IVX]+|[A-Z])\b/i;
@@ -108,9 +120,12 @@ function localizarAncoraNoCorpo(paginas) {
   if (!Array.isArray(paginas) || paginas.length === 0) return null;
 
   // Header forte: "CAPÍTULO N REMUNERAÇÃO DA B3"
-  const RE_HEADER_FORTE = /cap[íi]tulo\s*(?:\d{1,2}|[IVX]+)\s*[–\-—]?\s*remunera[çc][ãa]o\s*(?:da|d')?\s*b3/i;
+  const RE_HEADER_FORTE = new RegExp(
+    'cap[íi]tulo\\s*(?:\\d{1,2}|[IVX]+)\\s*[–\\-—]?\\s*remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3',
+    'i'
+  );
   // Header médio: linha "REMUNERAÇÃO DA B3" + presença de valor (R$) na mesma página
-  const RE_HEADER_MEDIO = /remunera[çc][ãa]o\s*(?:da|d')?\s*b3/i;
+  const RE_HEADER_MEDIO = new RegExp('remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3', 'i');
   const RE_TEM_VALOR = /R\$\s*[\d.,]+/;
 
   // Pular as primeiras 3 páginas (capa/sumário) para evitar âncoras espúrias
