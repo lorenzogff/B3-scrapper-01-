@@ -1,4 +1,4 @@
-﻿﻿# scripts/filter-uf.ps1
+# scripts/filter-uf.ps1
 # Conta e lista projetos por UF (estado) e municipios principais.
 # Le cache/projetos.json (gerado pelo discover).
 #
@@ -63,7 +63,7 @@ if (-not $municipios.ContainsKey($ufUpper)) {
   exit 1
 }
 
-# Constroi regex final defensivamente — nunca gera alternativa vazia,
+# Constroi regex final defensivamente -- nunca gera alternativa vazia,
 # que matchaaria qualquer string (bug ja visto quando $ufUpper veio vazio).
 $lista = $municipios[$ufUpper]
 $alternativas = @("\b$ufUpper\b", "/$ufUpper\b")
