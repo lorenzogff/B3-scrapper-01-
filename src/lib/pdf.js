@@ -38,9 +38,29 @@ async function extrairTextoPorPagina(buffer) {
   return paginas;
 }
 
+// Verifica se a janela ao redor de uma pagina contem cabecalho de
+// remuneracao/emolumentos B3 + algum valor R$. Usado para descartar
+// alvos do TOC que apontam para paginas erradas (off-by-N comum em
+// manuais antigos onde a numeracao tipografica diverge da pagina fisica).
+const RE_REM_B3_LOOSE = /(?:remunera[çc][ãa]o|emolumentos?)[\s\S]{0,80}b3/i;
+const RE_VALOR_LOOSE = /R\$\s*[\d.,]+/;
+function janelaTemRemuneracaoComValor(paginas, paginaAlvo) {
+  const ini = Math.max(0, paginaAlvo - 2);
+  const fim = Math.min(paginas.length, paginaAlvo + 3);
+  const trecho = paginas.slice(ini, fim).join(' ');
+  return RE_REM_B3_LOOSE.test(trecho) && RE_VALOR_LOOSE.test(trecho);
+}
+
 /**
  * Localiza a página alvo lendo APENAS as primeiras 7 páginas (sumário).
  * Retorna { pagina, ancora, totalPaginas, paginas } | { paginas, totalPaginas } se não achou.
+ *
+ * Encadeamento:
+ *   1) TOC anchor (rápido, casa maioria dos manuais bem-formatados)
+ *   2) Verifica se a janela apontada contem remuneracao+R\$. Se não tem,
+ *      assume que o TOC apontou para a pagina errada (caso BVMF_10923,
+ *      10811, 10590 etc.) e tenta novamente pelo corpo.
+ *   3) Body anchor (varre todas as paginas procurando o header de secao)
  */
 async function localizarAlvo(pdfPath) {
   const buffer = await fs.readFile(pdfPath);
@@ -53,19 +73,29 @@ async function localizarAlvo(pdfPath) {
     .join('\n\n');
 
   let alvo = localizarAncoraNoSumario(sumario, totalPaginas);
-  // Fallback: TOC pode estar ausente/malformatado (visto em manuais ANTT
-  // e PPP recentes onde pdf-parse junta a linha do sumário). Tenta achar
-  // o cabeçalho da seção direto no corpo do PDF.
+  // Validacao: o TOC pode apontar uma pagina sem o conteudo real (off-by-N
+  // entre numeracao tipografica e pagina fisica do PDF). Se a janela nao
+  // tem remuneracao+valor, faz fallback no corpo.
+  if (alvo && !janelaTemRemuneracaoComValor(paginas, alvo.pagina)) {
+    const alt = localizarAncoraNoCorpo(paginas);
+    if (alt && janelaTemRemuneracaoComValor(paginas, alt.pagina)) {
+      alvo = alt;
+    }
+  }
+  // Fallback total: TOC pode estar ausente/malformatado (manuais ANTT, PPP
+  // recentes). Tenta achar o cabecalho da secao direto no corpo do PDF.
   if (!alvo) alvo = localizarAncoraNoCorpo(paginas);
   return { alvo, totalPaginas, paginas };
 }
 
 /**
- * Monta o snippet de 3-4 páginas em torno da página alvo.
+ * Monta o snippet de 5-6 páginas em torno da página alvo.
+ * Janela expandida de [paginaAlvo-1, +2] para [paginaAlvo-2, +3] para
+ * compensar off-by-N entre numeracao do TOC e pagina fisica do PDF.
  */
 function montarTrecho(paginas, paginaAlvo) {
   const total = paginas.length;
-  const indices = [paginaAlvo - 1, paginaAlvo, paginaAlvo + 1, paginaAlvo + 2];
+  const indices = [paginaAlvo - 2, paginaAlvo - 1, paginaAlvo, paginaAlvo + 1, paginaAlvo + 2, paginaAlvo + 3];
   const partes = [];
   for (const i of indices) {
     if (i >= 1 && i <= total) {
