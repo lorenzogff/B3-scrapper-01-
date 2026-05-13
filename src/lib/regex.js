@@ -19,14 +19,17 @@
 // devida à B3", "remuneração devida pela X de cada BLOCO de R$").
 // Os manuais 2018-2020 esmagadoramente usam "da B3" (ausente no regex antigo).
 const CONECTOR_B3 = '(?:d[aeo]\\s+|à\\s+|devida\\s+(?:à\\s+|d[aeo]\\s+)?|para\\s+(?:à\\s+)?)?';
+// Sinonimos do termo de pagamento à B3. "Emolumentos da/à B3" e
+// "Remuneração da/à B3" sao intercambiaveis nos manuais.
+const TERMO_PAGAMENTO_B3 = '(?:remunera[çc][ãa]o|emolumentos?)';
 
 // \s* (não \s+) para tolerar PDFs onde pdf-parse devolve texto sem espaços
 // entre palavras (visto em manuais com fonte custom, ex.: Sanepar, Betim PPP).
 const ANCORAS_TOC = [
   [/obriga[çc][õo]es\s*pr[ée]vi(?:as|a)\s*(?:à\s*)?assinatura/i, 'obrigacoes_previas'],
-  [/cap[íi]tulo\s*(?:\d{1,2}|[IVX]+)\b[^.\n]{0,80}remunera[çc][ãa]o[\s]*(?:da|d')?[\s]*b3/i, 'capitulo_remuneracao'],
-  [/homologa[çc][ãa]o\s*da\s*licita[çc][ãa]o\s*e\s*remunera[çc][ãa]o/i, 'homologacao'],
-  [new RegExp('remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3', 'i'), 'remuneracao_b3'],
+  [new RegExp('cap[íi]tulo\\s*(?:\\d{1,2}|[IVX]+)\\b[^.\\n]{0,80}' + TERMO_PAGAMENTO_B3 + '[\\s]*(?:da|d\')?[\\s]*b3', 'i'), 'capitulo_remuneracao'],
+  [new RegExp('homologa[çc][ãa]o\\s*da\\s*licita[çc][ãa]o\\s*e\\s*' + TERMO_PAGAMENTO_B3, 'i'), 'homologacao'],
+  [new RegExp(TERMO_PAGAMENTO_B3 + '\\s+' + CONECTOR_B3 + 'b3', 'i'), 'remuneracao_b3'],
   [/reembolso\s*(?:à\s*)?b3/i, 'reembolso_b3'],
 ];
 
@@ -38,18 +41,21 @@ const ANCORAS_TOC = [
 // \s* permite texto comprimido ("naimportânciadeR$684.035,88").
 const RE_VALOR_CANONICO = /import[âa]ncia\s*de\s*R\$\s*([\d.,]+)(?:\s*\(([^)]{5,250})\))?/gi;
 
-// Variante "remuneração [da|à|devida] B3 ... R$" — comum em manuais 2018-2020.
-// Janela de 300 chars (era 200) cobre "remuneração da B3 devida pela X é R$".
+// Variante "remuneração|emolumentos [da|à|devida] B3 ... R$" — comum em
+// manuais 2018-2020. Janela de 300 chars (era 200) cobre os textos novos.
 const RE_VALOR_REMUN = new RegExp(
-  'remunera[çc](?:ão|ao)\\s+' + CONECTOR_B3 + 'B3[^.]{0,300}?R\\$\\s*([\\d.,]+)',
+  TERMO_PAGAMENTO_B3 + '\\s+' + CONECTOR_B3 + 'B3[^.]{0,300}?R\\$\\s*([\\d.,]+)',
   'gi'
 );
 const RE_VALOR_REEMBOLSO = /reembolso\s*(?:à\s*)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
 const RE_VALOR_TAXA_ADESAO = /taxa\s*de\s*ades[ãa]o[^.]{0,200}?R\$\s*([\d.,]+)/gi;
-// Padrão "montante (total) referente (à sua) remuneração ... R$" — específico
-// para evitar falso-positivo em "montante de indenização" (Apólice/Carta de
-// Fiança que aparece em editais ANEEL).
-const RE_VALOR_MONTANTE = /montante\s+(?:total\s+)?referente\s+(?:à\s+sua\s+)?(?:remunera[çc][ãa]o)?[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+// Padrão "montante (total) referente (à sua) remuneração|emolumentos ... R$"
+// — específico para evitar falso-positivo em "montante de indenização"
+// (Apólice/Carta de Fiança que aparece em editais ANEEL).
+const RE_VALOR_MONTANTE = new RegExp(
+  'montante\\s+(?:total\\s+)?referente\\s+(?:à\\s+sua\\s+)?(?:' + TERMO_PAGAMENTO_B3 + ')?[^.]{0,200}?R\\$\\s*([\\d.,]+)',
+  'gi'
+);
 
 // Identificação de lote no contexto antes do valor
 const RE_LOTE = /\blote\s+(\d+|[IVX]+|[A-Z])\b/i;
@@ -119,13 +125,13 @@ function localizarAncoraNoSumario(textoSumario, totalPaginas) {
 function localizarAncoraNoCorpo(paginas) {
   if (!Array.isArray(paginas) || paginas.length === 0) return null;
 
-  // Header forte: "CAPÍTULO N REMUNERAÇÃO DA B3"
+  // Header forte: "CAPÍTULO N REMUNERAÇÃO|EMOLUMENTOS DA B3"
   const RE_HEADER_FORTE = new RegExp(
-    'cap[íi]tulo\\s*(?:\\d{1,2}|[IVX]+)\\s*[–\\-—]?\\s*remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3',
+    'cap[íi]tulo\\s*(?:\\d{1,2}|[IVX]+)\\s*[–\\-—]?\\s*' + TERMO_PAGAMENTO_B3 + '\\s+' + CONECTOR_B3 + 'b3',
     'i'
   );
-  // Header médio: linha "REMUNERAÇÃO DA B3" + presença de valor (R$) na mesma página
-  const RE_HEADER_MEDIO = new RegExp('remunera[çc][ãa]o\\s+' + CONECTOR_B3 + 'b3', 'i');
+  // Header médio: linha "REMUNERAÇÃO|EMOLUMENTOS DA B3" + valor (R$) na mesma página
+  const RE_HEADER_MEDIO = new RegExp(TERMO_PAGAMENTO_B3 + '\\s+' + CONECTOR_B3 + 'b3', 'i');
   const RE_TEM_VALOR = /R\$\s*[\d.,]+/;
 
   // Pular as primeiras 3 páginas (capa/sumário) para evitar âncoras espúrias

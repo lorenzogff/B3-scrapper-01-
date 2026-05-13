@@ -377,6 +377,30 @@ test('localizarAncoraNoCorpo casa "REMUNERAÇÃO DA B3" sem CAPÍTULO N (BVMF_10
   assert.strictEqual(r.pagina, 19);
 });
 
+test('variante "emolumentos da B3" (sinonimo de remuneracao)', () => {
+  const s = 'EMOLUMENTOS DA B3 Após a homologação, os emolumentos da B3 devidos pela LICITANTE VENCEDORA correspondem à importância de R$ 425.000,00 (quatrocentos e vinte e cinco mil reais)';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 425000);
+});
+
+test('variante "emolumentos à B3 é de R$" (sem importancia)', () => {
+  const s = 'EMOLUMENTOS À B3 Os emolumentos à B3 devidos pela PROPONENTE VENCEDORA é de R$ 312.500,00 (trezentos e doze mil e quinhentos reais), data-base 2020';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 312500);
+});
+
+test('localizarAncoraNoCorpo aceita header EMOLUMENTOS DA B3', () => {
+  const paginas = ['capa', 'sumario', 'intro', 'p4', 'p5',
+    'p6', 'p7', 'p8',
+    'CAPÍTULO 5 EMOLUMENTOS DA B3 Conforme item X do EDITAL, os emolumentos da B3 importam em R$ 540.000,00'];
+  const r = localizarAncoraNoCorpo(paginas);
+  assert.ok(r);
+  assert.strictEqual(r.pagina, 9);
+  assert.strictEqual(r.ancora, 'corpo_capitulo_remuneracao');
+});
+
 // ─── runner ───────────────────────────────────────────────────────────────
 
 let pass = 0, fail = 0;
