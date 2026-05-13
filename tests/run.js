@@ -129,7 +129,7 @@ test('localizarAncoraNoSumario acha capítulo 6', () => {
   const r = localizarAncoraNoSumario(SUMARIO_TIPICO, 50);
   assert.ok(r);
   assert.strictEqual(r.pagina, 23);
-  assert.strictEqual(r.ancora, 'capitulo_6');
+  assert.strictEqual(r.ancora, 'capitulo_remuneracao');
 });
 
 // ─── categorizer ──────────────────────────────────────────────────────────
@@ -180,6 +180,65 @@ test('bvmf-listing acha BNDES - 001/2026 (IdLeilao=10914)', () => {
   const cagepa = p.find((x) => x.id_leilao === 10914);
   assert.ok(cagepa, 'IdLeilao=10914 nao encontrado');
   assert.match(cagepa.url_detalhe, /IdLeilao=10914/);
+});
+
+// ─── regex: novas variantes (diag-revisar 2026-05) ────────────────────────
+
+const { localizarAncoraNoCorpo } = require(path.join(ROOT, 'src/lib/regex'));
+
+test('canonico tolera texto sem espacos (manuais comprimidos)', () => {
+  // BVMF_10788 (Sanepar): "naimportânciadeR$684.035,88"
+  const s = 'aB3cobraráomontantetotalreferenteàsuaremuneração,naimportânciadeR$684.035,88(seiscentos)';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 684035.88);
+});
+
+test('variante montante de R$ proxima de B3', () => {
+  // BVMF_10804 (ANTT BR-040): "pagamento de remuneração à B3 no montante de R$ 968.548,84"
+  const s = 'REMUNERAÇÃO DA B3 Após a homologação certame, a Proponente Vencedora deverá realizar o pagamento de remuneração à B3 no montante de R$ 968.548,84 (novecentos e sessenta e oito mil, quinhentos e quarenta e oito reais e oitenta e quatro centavos), data-base dezembro/2023';
+  const r = extrairRemuneracaoB3(s);
+  assert.ok(r.length >= 1, 'esperava 1+ achado');
+  assert.strictEqual(r[0].valor, 968548.84);
+});
+
+test('localizarAncoraNoSumario acha pagina inline (TOC numa linha so)', () => {
+  // BVMF_10811 (Palmas TO): TOC sem newlines, paginas inline apos os dots
+  const toc = 'SUMÁRIO INTRODUÇÃO....3 CAPÍTULO 1 PARTICIPANTE CREDENCIADAS....5 CAPÍTULO 2 ENVELOPES....7 CAPÍTULO 3 GARANTIA....9 CAPÍTULO 4 SESSÃO....15 CAPÍTULO 5 HABILITAÇÃO....20 CAPÍTULO 6 REMUNERAÇÃO DA B3....27 ANEXO A....30';
+  const r = localizarAncoraNoSumario(toc, 32);
+  assert.ok(r, 'esperava ancora');
+  assert.strictEqual(r.pagina, 27);
+});
+
+test('localizarAncoraNoCorpo: header capitulo + remuneracao no corpo', () => {
+  // BVMF_10788 (Sanepar): TOC malformatado, header no corpo
+  const paginas = [
+    'capa', 'sumario truncado', 'introducao', 'p4', 'p5',
+    'p6', 'p7 capitulo 1', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14',
+    'p15', 'p16', 'p17', 'p18', 'p19', 'p20',
+    'CAPÍTULO 6 REMUNERAÇÃO DA B3 HOMOLOGAÇÃO Nos termos do item 27.2.6 do EDITAL, a B3 cobrará o montante total referente à sua remuneração, na importância de R$ 684.035,88'
+  ];
+  const r = localizarAncoraNoCorpo(paginas);
+  assert.ok(r, 'esperava ancora no corpo');
+  assert.strictEqual(r.pagina, 21);
+  assert.strictEqual(r.ancora, 'corpo_capitulo_remuneracao');
+});
+
+test('localizarAncoraNoCorpo: fallback header medio com valor', () => {
+  const paginas = ['capa', 'sumario', 'intro', 'p4', 'p5',
+    'p6', 'p7', 'p8', 'p9', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15',
+    'p16',
+    'REMUNERAÇÃO DA B3 a B3 cobrará na importância de R$ 578.060,45'];
+  const r = localizarAncoraNoCorpo(paginas);
+  assert.ok(r);
+  assert.strictEqual(r.pagina, 17);
+  assert.strictEqual(r.ancora, 'corpo_remuneracao_com_valor');
+});
+
+test('localizarAncoraNoCorpo nao casa quando nao tem secao', () => {
+  const paginas = ['capa', 'sumario', 'introducao apenas', 'sem nada'];
+  const r = localizarAncoraNoCorpo(paginas);
+  assert.strictEqual(r, null);
 });
 
 test('bvmf-detalhe extrai url_manual e url_site_projeto', () => {

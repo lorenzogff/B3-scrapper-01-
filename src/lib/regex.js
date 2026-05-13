@@ -14,25 +14,30 @@
 // Âncoras de sumário (TOC) — em ordem de prioridade
 // ───────────────────────────────────────────────────────────────────────────
 
+// \s* (não \s+) para tolerar PDFs onde pdf-parse devolve texto sem espaços
+// entre palavras (visto em manuais com fonte custom, ex.: Sanepar, Betim PPP).
 const ANCORAS_TOC = [
-  [/obriga[çc][õo]es\s+pr[ée]vi(?:as|a)\s+(?:à\s+)?assinatura/i, 'obrigacoes_previas'],
-  [/cap[íi]tulo\s+(?:6|VI)\b[^.\n]{0,80}remunera[çc][ãa]o/i, 'capitulo_6'],
-  [/homologa[çc][ãa]o\s+da\s+licita[çc][ãa]o\s+e\s+remunera[çc][ãa]o/i, 'homologacao'],
-  [/remunera[çc][ãa]o\s+(?:devida\s+)?(?:à\s+)?b3/i, 'remuneracao_b3'],
-  [/reembolso\s+(?:à\s+)?b3/i, 'reembolso_b3'],
+  [/obriga[çc][õo]es\s*pr[ée]vi(?:as|a)\s*(?:à\s*)?assinatura/i, 'obrigacoes_previas'],
+  [/cap[íi]tulo\s*(?:\d{1,2}|[IVX]+)\b[^.\n]{0,80}remunera[çc][ãa]o[\s]*(?:da|d')?[\s]*b3/i, 'capitulo_remuneracao'],
+  [/homologa[çc][ãa]o\s*da\s*licita[çc][ãa]o\s*e\s*remunera[çc][ãa]o/i, 'homologacao'],
+  [/remunera[çc][ãa]o\s*(?:devida\s*)?(?:à\s*)?b3/i, 'remuneracao_b3'],
+  [/reembolso\s*(?:à\s*)?b3/i, 'reembolso_b3'],
 ];
 
 // ───────────────────────────────────────────────────────────────────────────
 // Extração de valor monetário próximo a contexto B3
 // ───────────────────────────────────────────────────────────────────────────
 
-// Padrão canônico: "importância de R$ 396.000,00 (trezentos e ...)"
-const RE_VALOR_CANONICO = /import[âa]ncia\s+de\s+R\$\s*([\d.,]+)(?:\s*\(([^)]{5,250})\))?/gi;
+// Padrão canônico: "importância de R$ 396.000,00 (trezentos e ...)".
+// \s* permite texto comprimido ("naimportânciadeR$684.035,88").
+const RE_VALOR_CANONICO = /import[âa]ncia\s*de\s*R\$\s*([\d.,]+)(?:\s*\(([^)]{5,250})\))?/gi;
 
-// Variantes (usadas se canonico não casar):
-const RE_VALOR_REMUN = /remunera[çc](?:ão|ao)\s+(?:devida\s+)?(?:à\s+)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
-const RE_VALOR_REEMBOLSO = /reembolso\s+(?:à\s+)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
-const RE_VALOR_TAXA_ADESAO = /taxa\s+de\s+ades[ãa]o[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+// Variantes (usadas se canônico não casar):
+const RE_VALOR_REMUN = /remunera[çc](?:ão|ao)\s*(?:devida\s*)?(?:à\s*)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+const RE_VALOR_REEMBOLSO = /reembolso\s*(?:à\s*)?B3[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+const RE_VALOR_TAXA_ADESAO = /taxa\s*de\s*ades[ãa]o[^.]{0,200}?R\$\s*([\d.,]+)/gi;
+// Manuais ANTT/recentes usam "no montante de" / "montante total referente" em vez de "importância de"
+const RE_VALOR_MONTANTE = /montante\s*(?:total\s*)?(?:referente\s*(?:à\s*sua\s*)?(?:remunera[çc][ãa]o)?\s*)?\s*(?:de|à)?\s*[^.]{0,150}?R\$\s*([\d.,]+)/gi;
 
 // Identificação de lote no contexto antes do valor
 const RE_LOTE = /\blote\s+(\d+|[IVX]+|[A-Z])\b/i;
@@ -65,12 +70,22 @@ function localizarAncoraNoSumario(textoSumario, totalPaginas) {
     const rxG = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
     let m;
     while ((m = rxG.exec(textoSumario)) !== null) {
+      // Estratégia 1 (preferida): número de página IMEDIATAMENTE APÓS o match.
+      // Funciona tanto para TOC bem-formatado (CAPÍTULO X .... NN no fim da linha)
+      // quanto para TOC numa linha só (manuais onde pdf-parse junta tudo).
+      const after = textoSumario.slice(m.index + m[0].length, m.index + m[0].length + 80);
+      const numInline = after.match(/(?:\.{2,}|\s)\s*(\d{1,3})(?=\s|$|[A-ZÁÊÇÕ])/);
+
+      // Estratégia 2 (fallback): número de página no FIM da linha do match
       const lineStart = textoSumario.lastIndexOf('\n', m.index) + 1;
       const lineEnd = textoSumario.indexOf('\n', m.index + m[0].length);
       const linha = textoSumario.slice(lineStart, lineEnd === -1 ? textoSumario.length : lineEnd);
-      const numM = linha.match(/\b(\d{1,3})\s*$/);
-      if (!numM) continue;
-      const pag = parseInt(numM[1], 10);
+      const numFim = linha.match(/\b(\d{1,3})\s*$/);
+
+      let pag = null;
+      if (numInline) pag = parseInt(numInline[1], 10);
+      else if (numFim) pag = parseInt(numFim[1], 10);
+      if (pag == null) continue;
       if (pag < 5 || pag > 500 || pag > totalPaginas) continue;
       if (!melhor || prio < melhor.prio) {
         melhor = { prio, pagina: pag, ancora: nome };
@@ -78,6 +93,43 @@ function localizarAncoraNoSumario(textoSumario, totalPaginas) {
     }
   }
   return melhor;
+}
+
+/**
+ * Fallback: quando o TOC não rendeu âncora, varre as páginas inteiras
+ * procurando o cabeçalho da seção "REMUNERAÇÃO DA B3" no CORPO. Usado
+ * em manuais sem TOC, com TOC malformatado pelo pdf-parse, ou cujo
+ * sumário não lista o capítulo de remuneração.
+ *
+ * @param {string[]} paginas array de texto por página
+ * @returns {{pagina:number, ancora:string} | null}
+ */
+function localizarAncoraNoCorpo(paginas) {
+  if (!Array.isArray(paginas) || paginas.length === 0) return null;
+
+  // Header forte: "CAPÍTULO N REMUNERAÇÃO DA B3"
+  const RE_HEADER_FORTE = /cap[íi]tulo\s*(?:\d{1,2}|[IVX]+)\s*[–\-—]?\s*remunera[çc][ãa]o\s*(?:da|d')?\s*b3/i;
+  // Header médio: linha "REMUNERAÇÃO DA B3" + presença de valor (R$) na mesma página
+  const RE_HEADER_MEDIO = /remunera[çc][ãa]o\s*(?:da|d')?\s*b3/i;
+  const RE_TEM_VALOR = /R\$\s*[\d.,]+/;
+
+  // Pular as primeiras 3 páginas (capa/sumário) para evitar âncoras espúrias
+  const inicio = Math.min(3, paginas.length - 1);
+
+  // Prioridade 1: header forte
+  for (let i = inicio; i < paginas.length; i++) {
+    if (RE_HEADER_FORTE.test(paginas[i] || '')) {
+      return { pagina: i + 1, ancora: 'corpo_capitulo_remuneracao' };
+    }
+  }
+  // Prioridade 2: header médio + valor na mesma página
+  for (let i = inicio; i < paginas.length; i++) {
+    const t = paginas[i] || '';
+    if (RE_HEADER_MEDIO.test(t) && RE_TEM_VALOR.test(t)) {
+      return { pagina: i + 1, ancora: 'corpo_remuneracao_com_valor' };
+    }
+  }
+  return null;
 }
 
 /**
@@ -111,6 +163,7 @@ function extrairRemuneracaoB3(snippet) {
   const achados = [];
   const padroes = [
     { rx: RE_VALOR_CANONICO, fonte: 'canonico' },
+    { rx: RE_VALOR_MONTANTE, fonte: 'montante' },
     { rx: RE_VALOR_REMUN, fonte: 'remuneracao_b3' },
     { rx: RE_VALOR_REEMBOLSO, fonte: 'reembolso_b3' },
     { rx: RE_VALOR_TAXA_ADESAO, fonte: 'taxa_adesao' },
@@ -180,6 +233,7 @@ function extrairValorGlobal(snippet) {
 module.exports = {
   ANCORAS_TOC,
   localizarAncoraNoSumario,
+  localizarAncoraNoCorpo,
   extrairRemuneracaoB3,
   extrairValorGlobal,
   paginaDoMatch,

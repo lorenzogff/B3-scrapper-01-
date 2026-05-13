@@ -7,7 +7,7 @@
 const fs = require('fs-extra');
 const fsp = require('fs').promises;
 const pdfParse = require('pdf-parse');
-const { localizarAncoraNoSumario } = require('./regex');
+const { localizarAncoraNoSumario, localizarAncoraNoCorpo } = require('./regex');
 
 /**
  * Extrai texto do PDF dividido por página (usa \f como delimitador).
@@ -52,7 +52,11 @@ async function localizarAlvo(pdfPath) {
     .map((t, i) => `[[P${i + 1}]]\n${t}`)
     .join('\n\n');
 
-  const alvo = localizarAncoraNoSumario(sumario, totalPaginas);
+  let alvo = localizarAncoraNoSumario(sumario, totalPaginas);
+  // Fallback: TOC pode estar ausente/malformatado (visto em manuais ANTT
+  // e PPP recentes onde pdf-parse junta a linha do sumário). Tenta achar
+  // o cabeçalho da seção direto no corpo do PDF.
+  if (!alvo) alvo = localizarAncoraNoCorpo(paginas);
   return { alvo, totalPaginas, paginas };
 }
 
