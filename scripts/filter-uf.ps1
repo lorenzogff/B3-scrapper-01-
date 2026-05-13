@@ -1,92 +1,96 @@
-# scripts/filter-uf.ps1
-# Conta e lista projetos por UF (estado) e seus municipios principais.
-# Funciona em cima de cache/projetos.json (gerado pelo discover).
+﻿﻿# scripts/filter-uf.ps1
+# Conta e lista projetos por UF (estado) e municipios principais.
+# Le cache/projetos.json (gerado pelo discover).
 #
 # Uso:
 #   .\scripts\filter-uf.ps1 RJ
 #   .\scripts\filter-uf.ps1 SP -ExportCsv
-#
-# Saida:
-#   - Stdout: contagem total + lista cronologica + breakdown por ano
-#   - Opcional: cache/projetos_<uf>.csv
 
 param(
   [Parameter(Mandatory=$true)][string]$Uf,
   [switch]$ExportCsv
 )
 
-# Municipios principais por UF (com >= 50k hab ou historico de leilao B3).
-# Cobre estado + municipios que aparecem nos editais. Acentos opcionais
-# via classe de caracteres no regex.
+# Helper para letras acentuadas via classe de caracteres unicode.
+# A=A|A-acento, E=E|E-acento, etc. PowerShell 5.1 le este arquivo como
+# UTF-8 (BOM presente no inicio).
+$A = '[A' + [char]0x00C0 + [char]0x00C1 + [char]0x00C2 + [char]0x00C3 + ']'
+$E = '[E' + [char]0x00C8 + [char]0x00C9 + [char]0x00CA + ']'
+$I = '[I' + [char]0x00CC + [char]0x00CD + [char]0x00CE + ']'
+$O = '[O' + [char]0x00D2 + [char]0x00D3 + [char]0x00D4 + [char]0x00D5 + ']'
+$U = '[U' + [char]0x00D9 + [char]0x00DA + [char]0x00DB + ']'
+$C = '[C' + [char]0x00C7 + ']'
+
+# Municipios principais por UF.
 $municipios = @{
   'RJ' = @(
-    'RIO DE JANEIRO','NITER[OÓ]I','S[AÃ]O GON[CÇ]ALO','DUQUE DE CAXIAS',
-    'NOVA IGUA[CÇ]U','BELFORD ROXO','CAMPOS DOS GOYTACAZES','S[AÃ]O JO[AÃ]O DE MERITI',
-    'PETR[OÓ]POLIS','VOLTA REDONDA','MAG[EÉ]','MACA[EÉ]','ITABORA[IÍ]',
-    'MESQUITA','NOVA FRIBURGO','BARRA MANSA','ANGRA DOS REIS','TERES[OÓ]POLIS',
-    'NIL[OÓ]POLIS','RESENDE','MARIC[AÁ]','QUEIMADOS','RIO DAS OSTRAS',
-    'CABO FRIO','ITAPERUNA','ARARUAMA','ITAGUA[IÍ]','SAQUAREMA',
-    'B[UÚ]ZIOS','ARMA[CÇ][AÃ]O DOS B[UÚ]ZIOS','PARACAMBI','PARATY',
-    'S[AÃ]O PEDRO DA ALDEIA','TR[EÊ]S RIOS','VALEN[CÇ]A','PIRA[IÍ]'
+    'RIO DE JANEIRO', "NITER${O}I", "S${A}O GON${C}ALO", 'DUQUE DE CAXIAS',
+    "NOVA IGUA${C}U", 'BELFORD ROXO', 'CAMPOS DOS GOYTACAZES', "S${A}O JO${A}O DE MERITI",
+    "PETR${O}POLIS", 'VOLTA REDONDA', "MAG${E}", "MACA${E}", "ITABORA${I}",
+    'MESQUITA', 'NOVA FRIBURGO', 'BARRA MANSA', 'ANGRA DOS REIS', "TERES${O}POLIS",
+    "NIL${O}POLIS", 'RESENDE', "MARIC${A}", 'QUEIMADOS', 'RIO DAS OSTRAS',
+    'CABO FRIO', 'ITAPERUNA', 'ARARUAMA', "ITAGUA${I}", 'SAQUAREMA',
+    "B${U}ZIOS", "ARMA${C}${A}O DOS B${U}ZIOS", 'PARACAMBI', 'PARATY',
+    "S${A}O PEDRO DA ALDEIA", "TR${E}S RIOS", "VALEN${C}A", "PIRA${I}"
   )
   'SP' = @(
-    'S[AÃ]O PAULO','GUARULHOS','CAMPINAS','S[AÃ]O BERNARDO','SANTO ANDR[EÉ]',
-    'OSASCO','S[AÃ]O JOS[EÉ] DOS CAMPOS','RIBEIR[AÃ]O PRETO','SOROCABA','MAU[AÁ]',
-    'S[AÃ]O JOS[EÉ] DO RIO PRETO','MOG[IÍ] DAS CRUZES','SANTOS','DIADEMA','JUNDIA[IÍ]',
-    'CARAPICU[IÍ]BA','PIRACICABA','BAURU','S[AÃ]O VICENTE','ITAQUAQUECETUBA',
-    'FRANCA','GUARUJ[AÁ]','TABOAO DA SERRA','PRAIA GRANDE','LIMEIRA',
-    'SUMAR[EÉ]','SUZANO','TAUBAT[EÉ]','EMBU DAS ARTES','S[AÃ]O CAETANO',
-    'COTIA','INDAIATUBA','S[AÃ]O JOS[EÉ] DOS CAMPOS','BARUERI','MARILIA',
-    'PINDAMONHANGABA','BOTUCATU','BRAGAN[CÇ]A PAULISTA','S[AÃ]O CARLOS'
+    "S${A}O PAULO", 'GUARULHOS', 'CAMPINAS', "S${A}O BERNARDO", "SANTO ANDR${E}",
+    'OSASCO', "S${A}O JOS${E} DOS CAMPOS", "RIBEIR${A}O PRETO", 'SOROCABA', "MAU${A}",
+    "S${A}O JOS${E} DO RIO PRETO", "MOG${I} DAS CRUZES", 'SANTOS', 'DIADEMA', "JUNDIA${I}",
+    "CARAPICU${I}BA", 'PIRACICABA', 'BAURU', "S${A}O VICENTE", 'ITAQUAQUECETUBA',
+    'FRANCA', "GUARUJ${A}", 'TABOAO DA SERRA', 'PRAIA GRANDE', 'LIMEIRA',
+    "SUMAR${E}", 'SUZANO', "TAUBAT${E}", 'EMBU DAS ARTES', "S${A}O CAETANO",
+    'COTIA', 'INDAIATUBA', 'BARUERI', 'MARILIA', 'PINDAMONHANGABA',
+    'BOTUCATU', "BRAGAN${C}A PAULISTA", "S${A}O CARLOS"
   )
   'MG' = @(
-    'BELO HORIZONTE','UBERL[AÂ]NDIA','CONTAGEM','JUIZ DE FORA','BETIM',
-    'MONTES CLAROS','RIBEIR[AÃ]O DAS NEVES','UBERABA','GOVERNADOR VALADARES','IPATINGA',
-    'SETE LAGOAS','DIVIN[OÓ]POLIS','SANTA LUZIA','IBIRIT[EÉ]','POÇOS DE CALDAS',
-    'PATOS DE MINAS','TE[OÓ]FILO OTONI','SABAR[AÁ]','BARBACENA','VARGINHA',
-    'CONSELHEIRO LAFAIETE','VESPASIANO','ARAGUARI','ITABIRA','UB[AÁ]'
+    'BELO HORIZONTE', "UBERL${A}NDIA", 'CONTAGEM', 'JUIZ DE FORA', 'BETIM',
+    'MONTES CLAROS', "RIBEIR${A}O DAS NEVES", 'UBERABA', 'GOVERNADOR VALADARES', 'IPATINGA',
+    'SETE LAGOAS', "DIVIN${O}POLIS", 'SANTA LUZIA', "IBIRIT${E}", "PO${C}OS DE CALDAS",
+    'PATOS DE MINAS', "TE${O}FILO OTONI", "SABAR${A}", 'BARBACENA', 'VARGINHA',
+    'CONSELHEIRO LAFAIETE', 'VESPASIANO', 'ARAGUARI', 'ITABIRA'
   )
 }
 
 $ufUpper = $Uf.ToUpper()
 if (-not $municipios.ContainsKey($ufUpper)) {
-  Write-Host "UF '$ufUpper' nao mapeada. Disponiveis: $($municipios.Keys -join ', ')" -ForegroundColor Red
+  Write-Host ("UF '{0}' nao mapeada. Disponiveis: {1}" -f $ufUpper, ($municipios.Keys -join ', ')) -ForegroundColor Red
   exit 1
 }
 
-# Constroi regex: aceita "UF" como palavra isolada, "/UF", "- UF -", "ESTADO DO X", municipios
+# Constroi regex final
 $lista = $municipios[$ufUpper]
-$padraoUf = "\b$ufUpper\b|/$ufUpper\b|\-\s*$ufUpper\s*\-"
+$padraoUf = "\b$ufUpper\b|/$ufUpper\b"
 $padraoMun = ($lista | ForEach-Object { "\b$_\b" }) -join '|'
 $regex = "(?i)($padraoUf|$padraoMun)"
 
-$projectsPath = Join-Path $PSScriptRoot '..' 'cache' 'projetos.json'
+# Caminho do projetos.json (compativel com PS 5.1)
+$projectsPath = Join-Path -Path $PSScriptRoot -ChildPath '..\cache\projetos.json'
 if (-not (Test-Path $projectsPath)) {
   Write-Host "cache\projetos.json nao encontrado. Rode antes: npm run discover" -ForegroundColor Red
   exit 1
 }
 
 $projetos = Get-Content $projectsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$filtrados = $projetos | Where-Object { $_.titulo -match $regex -or $_.titulo_original -match $regex }
+$filtrados = $projetos | Where-Object {
+  ($_.titulo -match $regex) -or ($_.titulo_original -match $regex)
+}
 
 Write-Host ""
-Write-Host "=== $($filtrados.Count) projetos vinculados a $ufUpper (de $($projetos.Count) totais) ===" -ForegroundColor Cyan
+Write-Host ("=== {0} projetos vinculados a {1} (de {2} totais) ===" -f $filtrados.Count, $ufUpper, $projetos.Count) -ForegroundColor Cyan
 Write-Host ""
 
-# Breakdown por ano
 Write-Host "Por ano:" -ForegroundColor Yellow
 $filtrados | Group-Object ano | Sort-Object { [int]$_.Name } | ForEach-Object {
   "  $($_.Name): $($_.Count)"
 }
 
-# Breakdown por status_b3 (ATIVO/DESERTO/SUSPENSO/CANCELADO/REVOGADO)
 Write-Host ""
 Write-Host "Por status:" -ForegroundColor Yellow
 $filtrados | Group-Object status_b3 | Sort-Object Count -Descending | ForEach-Object {
   "  $($_.Name): $($_.Count)"
 }
 
-# Lista cronologica
 Write-Host ""
 Write-Host "Lista cronologica:" -ForegroundColor Yellow
 $filtrados | Sort-Object { [int]$_.ano }, data | ForEach-Object {
@@ -94,9 +98,8 @@ $filtrados | Sort-Object { [int]$_.ano }, data | ForEach-Object {
   "  [$($_.ano)]$status $($_.titulo)"
 }
 
-# CSV opcional
 if ($ExportCsv) {
-  $outPath = Join-Path $PSScriptRoot '..' "cache" "projetos_$($ufUpper.ToLower()).csv"
+  $outPath = Join-Path -Path $PSScriptRoot -ChildPath ("..\cache\projetos_" + $ufUpper.ToLower() + ".csv")
   $filtrados | Select-Object ano, data, num_edital, status_b3, titulo, id_leilao, url_detalhe |
     Export-Csv -Path $outPath -NoTypeInformation -Encoding UTF8
   Write-Host ""
