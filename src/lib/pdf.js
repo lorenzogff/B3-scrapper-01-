@@ -7,7 +7,7 @@
 const fs = require('fs-extra');
 const fsp = require('fs').promises;
 const pdfParse = require('pdf-parse');
-const { localizarAncoraNoSumario, localizarAncoraNoCorpo } = require('./regex');
+const { localizarAncoraNoSumario, localizarAncoraNoCorpo, extrairRemuneracaoB3 } = require('./regex');
 
 /**
  * Extrai texto do PDF dividido por página (usa \f como delimitador).
@@ -73,12 +73,12 @@ async function localizarAlvo(pdfPath) {
     .join('\n\n');
 
   let alvo = localizarAncoraNoSumario(sumario, totalPaginas);
-  // Validacao: o TOC pode apontar uma pagina sem o conteudo real (off-by-N
-  // entre numeracao tipografica e pagina fisica do PDF). Se a janela nao
-  // tem remuneracao+valor, faz fallback no corpo.
-  if (alvo && !janelaTemRemuneracaoComValor(paginas, alvo.pagina)) {
+  // Validacao: o TOC pode apontar para uma pagina sem o conteudo real
+  // (off-by-N entre numeracao tipografica e fisica). Se o regex extrator
+  // nao encontra valor na janela do TOC, faz fallback no corpo.
+  if (alvo && !janelaRendeValor(paginas, alvo.pagina)) {
     const alt = localizarAncoraNoCorpo(paginas);
-    if (alt && janelaTemRemuneracaoComValor(paginas, alt.pagina)) {
+    if (alt && janelaRendeValor(paginas, alt.pagina)) {
       alvo = alt;
     }
   }
