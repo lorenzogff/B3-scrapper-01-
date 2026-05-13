@@ -99,9 +99,61 @@ $filtrados | Sort-Object { [int]$_.ano }, data | ForEach-Object {
 }
 
 if ($ExportCsv) {
+  # Junta com cache/resultados/<id>.json para incluir valores extraidos.
+  # Quando o regex achou multi-lote, gera uma linha por lote.
+  $resDir = Join-Path -Path $PSScriptRoot -ChildPath '..\cache\resultados'
+  $linhas = @()
+  foreach ($p in $filtrados) {
+    $baseRow = [ordered]@{
+      ano            = $p.ano
+      data           = $p.data
+      num_edital     = $p.num_edital
+      status_b3      = $p.status_b3
+      nome_projeto   = $p.titulo
+      id_leilao      = $p.id_leilao
+      url_detalhe    = $p.url_detalhe
+      status_extract = ''
+      lote           = ''
+      valor_remun_b3 = ''
+      valor_global   = ''
+      pagina_pdf     = ''
+      fonte_observ   = ''
+    }
+
+    $idSafe = ($p.id -replace '[^A-Za-z0-9._-]', '_')
+    $resFile = Join-Path -Path $resDir -ChildPath ($idSafe + '.json')
+    if (Test-Path $resFile) {
+      $r = Get-Content $resFile -Raw -Encoding UTF8 | ConvertFrom-Json
+      $baseRow.status_extract = $r.status
+      $baseRow.valor_global = if ($r.valor_global) { $r.valor_global } else { '' }
+      $baseRow.fonte_observ = if ($r.fonte_observacao) { $r.fonte_observacao } elseif ($r.pdf_processado) { $r.pdf_processado } else { '' }
+
+      if ($r.valores -and $r.valores.Count -gt 0) {
+        $multi = $r.valores.Count -gt 1
+        foreach ($v in $r.valores) {
+          $row = [ordered]@{}
+          $baseRow.Keys | ForEach-Object { $row[$_] = $baseRow[$_] }
+          $loteStr = if ($v.lote) { $v.lote } else { 'geral' }
+          if ($multi -and $loteStr -ne 'geral') {
+            $row.nome_projeto = "$($p.titulo) - Lote $loteStr"
+          }
+          $row.lote = $loteStr
+          $row.valor_remun_b3 = $v.valor
+          $row.pagina_pdf = if ($v.pagina_pdf) { $v.pagina_pdf } else { $r.pagina_alvo }
+          $linhas += [PSCustomObject]$row
+        }
+      } else {
+        $linhas += [PSCustomObject]$baseRow
+      }
+    } else {
+      $baseRow.status_extract = 'sem_resultado'
+      $linhas += [PSCustomObject]$baseRow
+    }
+  }
+
   $outPath = Join-Path -Path $PSScriptRoot -ChildPath ("..\cache\projetos_" + $ufUpper.ToLower() + ".csv")
-  $filtrados | Select-Object ano, data, num_edital, status_b3, titulo, id_leilao, url_detalhe |
-    Export-Csv -Path $outPath -NoTypeInformation -Encoding UTF8
+  $linhas | Export-Csv -Path $outPath -NoTypeInformation -Encoding UTF8
   Write-Host ""
-  Write-Host "CSV exportado em: $outPath" -ForegroundColor Green
+  Write-Host ("CSV exportado em: {0} ({1} linhas)" -f $outPath, $linhas.Count) -ForegroundColor Green
+  Write-Host "Abra no Excel e use 'Salvar como > .xlsx' para virar planilha." -ForegroundColor Green
 }
